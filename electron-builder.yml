@@ -1,0 +1,76 @@
+appId: com.diarycheck.app
+productName: Diary Check
+copyright: Diary Check
+
+asar: true
+# La app no tiene dependencias nativas: no hace falta reconstruir nada.
+npmRebuild: false
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - package.json
+  - electron/**/*
+  - dist/diary-check/browser/**/*
+
+extraMetadata:
+  main: electron/main.js
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Utility
+  icon: build/icon.png
+  # El nombre del fichero .desktop se deduce de `desktopName` en package.json,
+  # así coincide con el WM_CLASS y el app_id de Electron.
+  syncDesktopName: true
+  synopsis: Seguimiento de misiones diarias y semanales de juegos gacha
+  description: >-
+    Diary Check te ayuda a organizar las misiones diarias y semanales de tus juegos
+    gacha, con el horario de reinicio propio de cada juego y recordatorios antes del reset.
+  desktop:
+    entry:
+      Name: Diary Check
+      Comment: Misiones diarias y semanales de tus gachas
+      Keywords: gacha;misiones;diarias;semanales;
+
+deb:
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+
+win:
+  # nsis: instalador normal. portable: un único .exe que se ejecuta sin instalar.
+  target:
+    - nsis
+    - portable
+  icon: build/icon.png
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Diary Check
+  # Al desinstalar no se borra el historial del usuario (%APPDATA%\diary-check).
+  deleteAppDataOnUninstall: false
+  artifactName: ${productName} Setup ${version}.${ext}
+
+portable:
+  artifactName: ${productName} ${version} (portable).${ext}
+  requestExecutionLevel: user
+
+mac:
+  target:
+    - dmg
+  category: public.app-category.productivity
+  icon: build/icon.png

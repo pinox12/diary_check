@@ -1,0 +1,132 @@
+<div class="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-5 sm:px-6 lg:py-8">
+  <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">Historial</h1>
+      <p class="mt-1 text-sm text-muted">Cómo de constante has sido con tus misiones.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="flex rounded-xl border border-line bg-surface2 p-0.5">
+        @for (option of ranges; track option) {
+          <button
+            type="button"
+            class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition"
+            [class.bg-accent]="range() === option"
+            [class.text-white]="range() === option"
+            [class.text-muted]="range() !== option"
+            (click)="range.set(option)"
+          >
+            {{ option }} días
+          </button>
+        }
+      </div>
+    </div>
+  </header>
+
+  <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="card p-4">
+      <p class="section-title">Cumplimiento diario</p>
+      <p class="mt-1 text-2xl font-semibold">{{ percent(stats().dailyRate) }}</p>
+      <p class="text-[11px] text-muted">Media de los últimos {{ range() }} días</p>
+    </div>
+    <div class="card p-4">
+      <p class="section-title">Cumplimiento semanal</p>
+      <p class="mt-1 text-2xl font-semibold">{{ percent(stats().weeklyRate) }}</p>
+      <p class="text-[11px] text-muted">Media de las últimas 12 semanas</p>
+    </div>
+    <div class="card p-4">
+      <p class="section-title">Misiones activas</p>
+      <p class="mt-1 text-2xl font-semibold">{{ stats().missions }}</p>
+      <p class="text-[11px] text-muted">en {{ stats().games }} juegos</p>
+    </div>
+    <div class="card p-4">
+      <p class="section-title">Registros guardados</p>
+      <p class="mt-1 text-2xl font-semibold">{{ stats().completions }}</p>
+      <p class="text-[11px] text-muted">marcas de cumplimiento</p>
+    </div>
+  </section>
+
+  @if (!hasHistory()) {
+    <section class="card px-6 py-12 text-center">
+      <span class="grid h-12 w-12 mx-auto place-items-center rounded-2xl bg-accent/12 text-accent">
+        <app-icon name="chart" [size]="24" />
+      </span>
+      <h2 class="mt-3 text-base font-semibold">Aún no hay historial</h2>
+      <p class="mt-1 text-sm text-muted">Marca misiones en la pestaña «Hoy» y aquí verás tus rachas y tu constancia.</p>
+      <a routerLink="/" class="btn btn-primary mt-3">Ir a Hoy</a>
+    </section>
+  } @else {
+    @if (topMissions().length > 0) {
+      <section class="card p-5">
+        <h2 class="section-title">Mejores rachas activas</h2>
+        <ul class="mt-3 grid gap-2 sm:grid-cols-2">
+          @for (entry of topMissions(); track entry.mission.id) {
+            <li class="flex items-center gap-3 rounded-xl border border-line bg-surface2 px-3 py-2">
+              @if (entry.game; as game) {
+                <app-game-cover [game]="game" mode="avatar" [size]="32" />
+              }
+              <span class="min-w-0 flex-1 truncate text-sm">{{ entry.mission.title }}</span>
+              <span class="chip chip-ok">
+                <app-icon name="fire" [size]="12" />
+                {{ entry.streak }}
+              </span>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @for (entry of history(); track entry.game.id) {
+      <section class="card p-5">
+        <div class="flex items-center gap-3">
+          <app-game-cover [game]="entry.game" mode="avatar" [size]="40" />
+          <div class="min-w-0 flex-1">
+            <h2 class="truncate font-semibold">{{ entry.game.name }}</h2>
+            <p class="text-[11px] text-muted">
+              {{ entry.completions }} registros · racha máxima activa {{ entry.streak }}
+            </p>
+          </div>
+          <div class="flex shrink-0 gap-2 text-right">
+            <div>
+              <p class="text-[11px] text-muted">Diario</p>
+              <p class="text-sm font-semibold">{{ percent(entry.rate) }}</p>
+            </div>
+            <div>
+              <p class="text-[11px] text-muted">Semanal</p>
+              <p class="text-sm font-semibold">{{ percent(entry.weeklyRate) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <p class="section-title mt-4">Diarias · últimos {{ range() }} días</p>
+        <div class="mt-2">
+          <app-heatmap [stats]="entry.daily" />
+        </div>
+
+        <p class="section-title mt-4">Semanales · 12 semanas</p>
+        <div class="mt-2">
+          <app-heatmap [stats]="entry.weekly" />
+        </div>
+      </section>
+    }
+
+    <section class="card p-5">
+      <h2 class="section-title">Mantenimiento del historial</h2>
+      <p class="mt-1 text-xs text-muted">
+        Si tus datos crecen demasiado (o usas la versión web), puedes borrar los registros antiguos sin perder juegos ni
+        misiones.
+      </p>
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <select class="input input-sm w-40" [value]="pruneMonths()" (change)="pruneMonths.set(+$any($event.target).value)">
+          <option value="3">Conservar 3 meses</option>
+          <option value="6">Conservar 6 meses</option>
+          <option value="12">Conservar 12 meses</option>
+          <option value="24">Conservar 24 meses</option>
+        </select>
+        <button type="button" class="btn btn-danger btn-sm" (click)="prune()">
+          <app-icon name="trash" [size]="13" />
+          Borrar historial antiguo
+        </button>
+      </div>
+    </section>
+  }
+</div>

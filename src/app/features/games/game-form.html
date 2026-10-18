@@ -1,0 +1,284 @@
+<div class="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-5 sm:px-6 lg:py-8">
+  <header class="flex items-center gap-3">
+    <a routerLink="/games" class="btn btn-ghost btn-icon" aria-label="Volver">
+      <app-icon name="arrow-left" />
+    </a>
+    <div class="min-w-0 flex-1">
+      <h1 class="truncate text-xl font-semibold tracking-tight">
+        {{ isEdit() ? 'Editar juego' : 'Nuevo juego' }}
+      </h1>
+      <p class="truncate text-xs text-muted">Nombre, portada y horarios de reset del servidor.</p>
+    </div>
+    <button type="button" class="btn btn-primary" [disabled]="!canSave() || saving()" (click)="save()">
+      <app-icon name="check" [size]="16" />
+      Guardar
+    </button>
+  </header>
+
+  <!-- Identidad ------------------------------------------------------------- -->
+  <section class="card p-5">
+    <h2 class="section-title">Identidad</h2>
+
+    <div class="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start">
+      <div class="flex-1">
+        <label class="label" for="game-name">Nombre del juego</label>
+        <div class="relative">
+          <app-icon name="search" [size]="15" class="pointer-events-none absolute top-2.5 left-3 text-muted" />
+          <input
+            id="game-name"
+            class="input py-2 pl-9"
+            type="text"
+            autocomplete="off"
+            placeholder="Genshin Impact, Blue Archive…"
+            [value]="name()"
+            (input)="onNameInput($any($event.target).value)"
+          />
+          @if (searching()) {
+            <span class="absolute top-2.5 right-3 text-[11px] text-muted">buscando…</span>
+          }
+        </div>
+        <p class="mt-1.5 text-[11px] text-muted">
+          Al escribir buscamos portadas online (App Store, AniList, Wikipedia). También puedes pegar una URL o subir una
+          imagen.
+        </p>
+      </div>
+
+      <div class="sm:w-56">
+        <label class="label">Color de acento</label>
+        <div class="flex flex-wrap gap-1.5">
+          @for (color of palette; track color) {
+            <button
+              type="button"
+              class="h-7 w-7 rounded-lg border transition hover:scale-110"
+              [style.background]="color"
+              [style.border-color]="accentColor() === color ? 'var(--color-fg)' : 'transparent'"
+              [attr.aria-label]="'Color ' + color"
+              (click)="accentColor.set(color)"
+            ></button>
+          }
+          <input
+            type="color"
+            class="h-7 w-9 cursor-pointer rounded-lg border border-line bg-surface2"
+            [value]="accentColor()"
+            (input)="accentColor.set($any($event.target).value)"
+          />
+        </div>
+      </div>
+    </div>
+
+    @if (presetSuggestions().length > 0) {
+      <div class="mt-4">
+        <p class="label">Reglas predefinidas</p>
+        <div class="flex flex-wrap gap-1.5">
+          @for (preset of presetSuggestions(); track preset.name) {
+            <button type="button" class="chip hover:border-accent/50 hover:text-fg" (click)="applyPreset(preset)">
+              <app-icon name="sparkles" [size]="12" />
+              {{ preset.name }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="mt-4">
+      <label class="label" for="game-notes">Notas (opcional)</label>
+      <textarea
+        id="game-notes"
+        class="input min-h-20 resize-y"
+        placeholder="Servidor EU, cuenta F2P, eventos…"
+        [value]="notes()"
+        (input)="notes.set($any($event.target).value)"
+      ></textarea>
+    </div>
+  </section>
+
+  <!-- Portada ---------------------------------------------------------------- -->
+  <section class="card p-5">
+    <div class="flex items-center justify-between">
+      <h2 class="section-title">Portada</h2>
+      @if (cover()) {
+        <button type="button" class="btn btn-ghost btn-sm text-danger/80 hover:text-danger" (click)="clearCover()">
+          <app-icon name="trash" [size]="13" />
+          Quitar
+        </button>
+      }
+    </div>
+
+    <div class="mt-3 grid gap-4 lg:grid-cols-[10rem_1fr]">
+      <div>
+        <div class="aspect-square overflow-hidden rounded-2xl border border-line bg-surface2">
+          @if (cover()) {
+            <img [src]="cover()" alt="Portada actual" class="h-full w-full object-cover" />
+          } @else {
+            <div class="grid h-full place-items-center text-muted">
+              <app-icon name="image" [size]="30" />
+            </div>
+          }
+        </div>
+        <label class="btn btn-sm mt-2 w-full cursor-pointer">
+          <app-icon name="upload" [size]="13" />
+          Subir imagen
+          <input type="file" accept="image/*" class="hidden" (change)="onFileSelected($event)" />
+        </label>
+      </div>
+
+      <div class="min-w-0">
+        <div class="flex items-center justify-between gap-2">
+          <p class="label mb-0">Resultados de la búsqueda</p>
+          <button type="button" class="btn btn-ghost btn-sm" [disabled]="searching()" (click)="searchCover()">
+            <app-icon name="refresh" [size]="13" />
+            Buscar de nuevo
+          </button>
+        </div>
+
+        @if (coverBusy()) {
+          <p class="mt-2 text-xs text-accent">Descargando y optimizando la imagen…</p>
+        }
+
+        <div class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+          @for (candidate of results(); track candidate.id) {
+            <button
+              type="button"
+              class="group relative aspect-square overflow-hidden rounded-xl border border-line bg-surface2 transition hover:border-accent/60"
+              [title]="candidate.title + (candidate.subtitle ? ' · ' + candidate.subtitle : '')"
+              (click)="chooseCover(candidate)"
+            >
+              <img [src]="candidate.imageUrl" alt="" class="h-full w-full object-cover" loading="lazy" />
+              <span
+                class="absolute inset-x-0 bottom-0 line-clamp-2 bg-black/60 px-1.5 py-1 text-[10px] leading-tight text-white opacity-0 transition group-hover:opacity-100"
+              >
+                {{ candidate.title }}
+              </span>
+              <span class="absolute top-1 left-1 rounded bg-black/60 px-1 text-[9px] text-white/80">
+                {{ coverSourceLabel(candidate.source) }}
+              </span>
+            </button>
+          } @empty {
+            <p class="col-span-full text-xs text-muted">
+              @if (searching()) {
+                Buscando portadas…
+              } @else if (searched()) {
+                Sin resultados. Prueba con el nombre en inglés o pega una URL.
+              } @else {
+                Escribe al menos 3 letras del nombre y buscaremos portadas automáticamente.
+              }
+            </p>
+          }
+        </div>
+
+        <div class="mt-4">
+          <p class="label">Usar una URL</p>
+          <div class="flex gap-2">
+            <input
+              class="input input-sm flex-1"
+              type="url"
+              placeholder="https://…/portada.jpg"
+              [value]="coverUrl()"
+              (input)="coverUrl.set($any($event.target).value)"
+            />
+            <button type="button" class="btn btn-sm" [disabled]="coverBusy()" (click)="applyCoverUrl()">
+              <app-icon name="link" [size]="13" />
+              Usar
+            </button>
+          </div>
+          <p class="mt-1.5 text-[11px] text-muted">
+            La imagen se descarga y se guarda comprimida dentro de tus datos (data URL), así funciona sin conexión.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Resets ----------------------------------------------------------------- -->
+  <section class="card p-5">
+    <h2 class="section-title">Reinicio de misiones</h2>
+    <p class="mt-1 text-xs text-muted">
+      Cada juego puede reiniciar en un día y hora distintos. Usa la hora del servidor en el que juegas.
+    </p>
+
+    <div class="mt-4 grid gap-4 sm:grid-cols-2">
+      <div>
+        <label class="label" for="game-timezone">Zona horaria del servidor</label>
+        <select
+          id="game-timezone"
+          class="input"
+          [value]="timezone()"
+          (change)="timezone.set($any($event.target).value)"
+        >
+          @for (zone of timezones; track zone) {
+            <option [value]="zone" [selected]="zone === timezone()">
+              {{ zone === 'system' ? 'Zona del equipo (' + systemZone + ')' : zone }}
+            </option>
+          }
+        </select>
+        <p class="mt-1.5 text-[11px] text-muted">Tu equipo: {{ systemZone }}</p>
+      </div>
+
+      <div>
+        <label class="label" for="daily-reset">Reset diario</label>
+        <input
+          id="daily-reset"
+          class="input"
+          type="time"
+          [value]="dailyResetTime()"
+          (input)="dailyResetTime.set($any($event.target).value || '00:00')"
+        />
+      </div>
+
+      <div>
+        <label class="label" for="weekly-day">Día del reset semanal</label>
+        <select
+          id="weekly-day"
+          class="input"
+          [value]="weeklyResetDay()"
+          (change)="weeklyResetDay.set(+$any($event.target).value)"
+        >
+          @for (day of weekdays; track day; let index = $index) {
+            <option [value]="index" [selected]="index === weeklyResetDay()">{{ day }}</option>
+          }
+        </select>
+      </div>
+
+      <div>
+        <label class="label" for="weekly-reset">Hora del reset semanal</label>
+        <input
+          id="weekly-reset"
+          class="input"
+          type="time"
+          [value]="weeklyResetTime()"
+          (input)="weeklyResetTime.set($any($event.target).value || '00:00')"
+        />
+      </div>
+    </div>
+
+    <div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-line bg-surface2 px-4 py-3">
+      <div class="flex items-center gap-3">
+        <app-game-cover [game]="previewGame()" mode="avatar" [size]="40" />
+        <div>
+          <p class="text-sm font-medium">{{ previewGame().name }}</p>
+          <p class="text-[11px] text-muted">Vista previa de los resets</p>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1 text-xs">
+        <div class="flex items-center gap-2">
+          <span class="chip chip-daily">Diarias</span>
+          <app-countdown [target]="preview().nextDaily" />
+          <span class="text-muted">· periodo {{ preview().dailyLabel }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="chip chip-weekly">Semanales</span>
+          <app-countdown [target]="preview().nextWeekly" />
+          <span class="text-muted">· periodo {{ preview().weeklyLabel }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="flex items-center justify-between gap-3 pb-6">
+    <a routerLink="/games" class="btn btn-ghost">Cancelar</a>
+    <button type="button" class="btn btn-primary" [disabled]="!canSave() || saving()" (click)="save()">
+      <app-icon name="check" [size]="16" />
+      {{ isEdit() ? 'Guardar cambios' : 'Crear juego' }}
+    </button>
+  </footer>
+</div>

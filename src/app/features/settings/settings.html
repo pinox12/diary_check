@@ -1,0 +1,195 @@
+<div class="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-5 sm:px-6 lg:py-8">
+  <header>
+    <h1 class="text-2xl font-semibold tracking-tight">Ajustes</h1>
+    <p class="mt-1 text-sm text-muted">Apariencia, recordatorios y copias de seguridad de tus datos.</p>
+  </header>
+
+  <!-- Apariencia ------------------------------------------------------------ -->
+  <section class="card p-5">
+    <h2 class="section-title">Apariencia</h2>
+    <div class="mt-3 flex gap-2">
+      <button
+        type="button"
+        class="btn flex-1 sm:flex-none"
+        [class.btn-primary]="settings().theme === 'dark'"
+        (click)="setTheme('dark')"
+      >
+        <app-icon name="moon" [size]="15" />
+        Oscuro
+      </button>
+      <button
+        type="button"
+        class="btn flex-1 sm:flex-none"
+        [class.btn-primary]="settings().theme === 'light'"
+        (click)="setTheme('light')"
+      >
+        <app-icon name="sun" [size]="15" />
+        Claro
+      </button>
+    </div>
+  </section>
+
+  <!-- Notificaciones -------------------------------------------------------- -->
+  <section class="card p-5">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <h2 class="section-title">Recordatorios</h2>
+        <p class="mt-1 text-xs text-muted">
+          Avisos antes de que reinicien tus misiones. En escritorio usan las notificaciones del sistema.
+        </p>
+      </div>
+      <label class="flex cursor-pointer items-center gap-2">
+        <input
+          type="checkbox"
+          class="peer sr-only"
+          [checked]="settings().notifyEnabled"
+          (change)="update({ notifyEnabled: $any($event.target).checked })"
+        />
+        <span
+          class="relative h-6 w-11 rounded-full bg-surface3 transition peer-checked:bg-accent after:absolute after:top-0.5 after:left-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-5"
+        ></span>
+      </label>
+    </div>
+
+    @if (settings().notifyEnabled) {
+      <div class="mt-4 space-y-4">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label class="label" for="lead-minutes">Avisar con antelación de</label>
+            <select
+              id="lead-minutes"
+              class="input"
+              [value]="settings().notifyLeadMinutes"
+              (change)="update({ notifyLeadMinutes: +$any($event.target).value })"
+            >
+              @for (option of leadOptions; track option) {
+                <option [value]="option" [selected]="option === settings().notifyLeadMinutes">
+                  {{ option < 60 ? option + ' minutos' : option / 60 + ' hora' + (option > 60 ? 's' : '') }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div>
+            <span class="label">Estado del permiso</span>
+            <div class="flex items-center gap-2">
+              <span class="chip" [class.chip-ok]="notifications.permission() === 'granted'">
+                {{ notifications.permission() }}
+              </span>
+              @if (notifications.permission() !== 'granted' && !isElectron) {
+                <button type="button" class="btn btn-sm" (click)="requestPermission()">Permitir</button>
+              }
+              <button type="button" class="btn btn-sm" (click)="testNotification()">
+                <app-icon name="bell" [size]="13" />
+                Probar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <label class="flex items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            class="peer sr-only"
+            [checked]="settings().notifySummaryOnOpen"
+            (change)="update({ notifySummaryOnOpen: $any($event.target).checked })"
+          />
+          <span
+            class="relative h-6 w-11 shrink-0 rounded-full bg-surface3 transition peer-checked:bg-accent after:absolute after:top-0.5 after:left-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-5"
+          ></span>
+          Resumen al abrir la app (una vez al día)
+        </label>
+
+        <label class="flex items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            class="peer sr-only"
+            [checked]="settings().notifyWeekly"
+            (change)="update({ notifyWeekly: $any($event.target).checked })"
+          />
+          <span
+            class="relative h-6 w-11 shrink-0 rounded-full bg-surface3 transition peer-checked:bg-accent after:absolute after:top-0.5 after:left-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-5"
+          ></span>
+          Avisar también de semanales pendientes (12 h antes del reset)
+        </label>
+      </div>
+    }
+  </section>
+
+  <!-- Datos ----------------------------------------------------------------- -->
+  <section class="card p-5">
+    <h2 class="section-title">Tus datos</h2>
+    <dl class="mt-3 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+      <div>
+        <dt class="text-muted">Almacenamiento</dt>
+        <dd class="font-medium">{{ storageInfo.label }}</dd>
+      </div>
+      <div>
+        <dt class="text-muted">Tamaño</dt>
+        <dd class="font-medium">{{ sizeLabel() }}</dd>
+      </div>
+      <div>
+        <dt class="text-muted">Juegos / misiones</dt>
+        <dd class="font-medium">{{ counts().games }} / {{ counts().missions }}</dd>
+      </div>
+      <div>
+        <dt class="text-muted">Registros</dt>
+        <dd class="font-medium">{{ counts().completions }}</dd>
+      </div>
+    </dl>
+
+    @if (appInfo()?.dataPath; as dataPath) {
+      <p class="mt-3 truncate rounded-xl border border-line bg-surface2 px-3 py-2 font-mono text-[11px] text-muted">
+        {{ dataPath }}
+      </p>
+    }
+
+    <div class="mt-4 flex flex-wrap gap-2">
+      <button type="button" class="btn btn-sm" [disabled]="busy()" (click)="exportData()">
+        <app-icon name="download" [size]="14" />
+        Exportar a JSON
+      </button>
+      <button type="button" class="btn btn-sm" [disabled]="busy()" (click)="importData()">
+        <app-icon name="upload" [size]="14" />
+        Importar JSON
+      </button>
+      @if (isElectron) {
+        <button type="button" class="btn btn-sm" (click)="openDataFolder()">
+          <app-icon name="folder" [size]="14" />
+          Abrir carpeta de datos
+        </button>
+      }
+      <button type="button" class="btn btn-danger btn-sm" (click)="resetAll()">
+        <app-icon name="trash" [size]="14" />
+        Borrar todo
+      </button>
+    </div>
+
+    <p class="mt-3 text-[11px] text-muted">
+      @if (isElectron) {
+        En escritorio tus datos viven en <span class="font-mono">data.json</span> y se guarda una copia
+        <span class="font-mono">data.backup.json</span> junto a él. Cada cambio se escribe de forma atómica.
+      } @else {
+        En el navegador los datos se guardan en el almacenamiento local del sitio. Usa «Exportar a JSON» para hacer
+        copias o llevarlos a otro equipo.
+      }
+    </p>
+  </section>
+
+  <!-- Acerca de ------------------------------------------------------------- -->
+  <section class="card p-5">
+    <h2 class="section-title">Acerca de</h2>
+    <div class="mt-3 flex items-center gap-4">
+      <img src="icon.svg" alt="" class="h-12 w-12 rounded-xl" />
+      <div class="text-xs text-muted">
+        <p class="text-sm font-medium text-fg">Diary Check</p>
+        <p>Versión {{ appInfo()?.version ?? '—' }}</p>
+        <p>{{ appInfo()?.runtime ?? storageInfo.kind }} · {{ appInfo()?.platform ?? '' }}</p>
+      </div>
+    </div>
+    <p class="mt-4 text-[11px] text-muted">
+      Los resets se calculan con la hora de pared de la zona horaria que configures en cada juego, por lo que los
+      cambios de horario de verano no descuadran nada.
+    </p>
+  </section>
+</div>

@@ -1,0 +1,58 @@
+{
+  "name": "diary-check",
+  "version": "0.1.0",
+  "description": "Seguimiento de misiones diarias y semanales de tus juegos gacha (web y escritorio)",
+  "author": {
+    "name": "Diary Check",
+    "email": "cambia-este-correo@example.com"
+  },
+  "homepage": "https://example.com/diary-check",
+  "license": "MIT",
+  "private": true,
+  "main": "electron/main.js",
+  "desktopName": "diary-check.desktop",
+  "packageManager": "npm@12.2.1",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "dev": "ng serve",
+    "dev:electron": "concurrently -k -n web,app -c cyan,magenta \"ng serve --port 4200\" \"wait-on tcp:127.0.0.1:4200 && electron . --dev\"",
+    "electron": "electron .",
+    "build": "ng build",
+    "build:web": "ng build --configuration production",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test --watch=false && npm run test:electron",
+    "test:watch": "ng test",
+    "test:electron": "node --test electron/",
+    "dist": "ng build --configuration production && electron-builder",
+    "dist:linux": "ng build --configuration production && electron-builder --linux",
+    "dist:win": "ng build --configuration production && electron-builder --win",
+    "dist:mac": "ng build --configuration production && electron-builder --mac"
+  },
+  "dependencies": {
+    "@angular/common": "^22.2.0",
+    "@angular/compiler": "^22.2.0",
+    "@angular/core": "^22.2.0",
+    "@angular/forms": "^22.2.0",
+    "@angular/platform-browser": "^22.2.0",
+    "@angular/router": "^22.2.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.2.3",
+    "@angular/cli": "^22.2.3",
+    "@angular/compiler-cli": "^22.2.0",
+    "@tailwindcss/postcss": "^4.3.3",
+    "concurrently": "^10.0.6",
+    "electron": "^44.9.0",
+    "electron-builder": "^26.15.3",
+    "jsdom": "^30.0.0",
+    "postcss": "^8.5.30",
+    "prettier": "^3.8.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.2",
+    "vitest": "^5.0.0",
+    "wait-on": "^9.5.1"
+  }
+}

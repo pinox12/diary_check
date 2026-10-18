@@ -1,0 +1,184 @@
+<div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-5 sm:px-6 lg:py-8">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="text-[11px] font-semibold tracking-wider text-muted uppercase">{{ todayLabel() }}</p>
+      <h1 class="mt-0.5 text-2xl font-semibold tracking-tight">{{ greeting() }}</h1>
+      @if (hasGames()) {
+        <p class="mt-1 text-sm text-muted">
+          Diarias {{ totals().dailyDone }}/{{ totals().dailyTotal }} · Semanales {{ totals().weeklyDone }}/{{
+            totals().weeklyTotal
+          }}
+        </p>
+      }
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      @if (summary().missions > 0) {
+        <span class="chip chip-daily">
+          <app-icon name="clock" [size]="13" />
+          {{ summary().daily }} diarias pendientes
+        </span>
+        @if (summary().weekly > 0) {
+          <span class="chip chip-weekly">
+            <app-icon name="calendar" [size]="13" />
+            {{ summary().weekly }} semanales pendientes
+          </span>
+        }
+      } @else if (hasGames()) {
+        <span class="chip chip-ok">
+          <app-icon name="check" [size]="13" />
+          Todo al día
+        </span>
+      }
+
+      <button type="button" class="btn btn-sm" (click)="onlyPending.set(!onlyPending())">
+        <app-icon [name]="onlyPending() ? 'eye-off' : 'filter'" [size]="14" />
+        {{ onlyPending() ? 'Ver todos' : 'Solo pendientes' }}
+      </button>
+      <a routerLink="/games/new" class="btn btn-primary btn-sm">
+        <app-icon name="plus" [size]="14" />
+        Nuevo juego
+      </a>
+    </div>
+  </header>
+
+  @if (!hasGames()) {
+    <section class="card flex flex-col items-center gap-3 px-6 py-14 text-center">
+      <span class="grid h-14 w-14 place-items-center rounded-2xl bg-accent/12 text-accent">
+        <app-icon name="gamepad" [size]="26" />
+      </span>
+      <h2 class="text-lg font-semibold">Todavía no tienes juegos registrados</h2>
+      <p class="max-w-md text-sm text-muted">
+        Añade tu primer gacha, configura cuándo reinician sus misiones y empieza a marcar tus diarias y semanales.
+        Al escribir el nombre te buscaremos una portada automáticamente.
+      </p>
+      <a routerLink="/games/new" class="btn btn-primary mt-1">
+        <app-icon name="plus" [size]="16" />
+        Añadir mi primer juego
+      </a>
+    </section>
+  } @else if (games().length === 0) {
+    <section class="card flex flex-col items-center gap-2 px-6 py-12 text-center">
+      <span class="grid h-12 w-12 place-items-center rounded-2xl bg-ok/12 text-ok">
+        <app-icon name="check" [size]="24" />
+      </span>
+      <h2 class="text-base font-semibold">No te queda nada pendiente</h2>
+      <p class="text-sm text-muted">Has completado todas tus misiones de este periodo.</p>
+      <button type="button" class="btn btn-sm mt-1" (click)="onlyPending.set(false)">Ver todos los juegos</button>
+    </section>
+  } @else {
+    <div class="grid gap-4 lg:grid-cols-2">
+      @for (entry of games(); track entry.game.id) {
+        <article class="card overflow-hidden">
+          <div class="relative">
+            <app-game-cover [game]="entry.game" mode="banner" />
+
+            <div class="relative flex items-start justify-between gap-3 p-4">
+              <div class="flex min-w-0 items-center gap-3">
+                <app-game-cover [game]="entry.game" mode="avatar" [size]="46" />
+                <div class="min-w-0">
+                  <h2 class="truncate font-semibold leading-tight">{{ entry.game.name }}</h2>
+                  <p class="truncate text-[11px] text-muted">
+                    Semanal: {{ weekdayLabel(entry.game.weeklyResetDay) }} {{ entry.game.weeklyResetTime }}
+                    @if (entry.game.archived) {
+                      · archivado
+                    }
+                  </p>
+                </div>
+              </div>
+
+              @if (entry.pending > 0) {
+                <span class="chip chip-daily shrink-0">{{ entry.pending }} pendientes</span>
+              } @else {
+                <span class="chip chip-ok shrink-0">
+                  <app-icon name="check" [size]="12" />
+                  Al día
+                </span>
+              }
+            </div>
+          </div>
+
+          <div class="space-y-4 px-4 pb-4">
+            <section>
+              <div class="flex items-center justify-between gap-2">
+                <p class="text-xs font-medium">
+                  Diarias
+                  <span class="ml-1 text-muted">{{ entry.dailyDone }}/{{ entry.dailyTotal }}</span>
+                </p>
+                <app-countdown [target]="entry.nextDaily" label="reset" />
+              </div>
+              <app-progress-bar
+                class="mt-1.5 block"
+                [value]="entry.dailyDone"
+                [max]="entry.dailyTotal"
+                [color]="entry.game.accentColor"
+              />
+              <div class="mt-1.5">
+                @for (mission of entry.daily; track mission.mission.id) {
+                  <app-mission-row
+                    [mission]="mission.mission"
+                    [count]="mission.count"
+                    [done]="mission.done"
+                    [streak]="streakOf(mission.mission.id)"
+                    (toggle)="toggle(mission.mission)"
+                    (setCount)="setCount(mission.mission, $event)"
+                  />
+                } @empty {
+                  <p class="py-1 text-xs text-muted">
+                    Sin misiones diarias.
+                    <a class="link" [routerLink]="['/games', entry.game.id]">Añadir</a>
+                  </p>
+                }
+              </div>
+              @if (entry.dailyTotal > 0) {
+                <button type="button" class="btn btn-ghost btn-sm mt-1" (click)="toggleAll(entry, 'daily')">
+                  <app-icon [name]="entry.dailyDone === entry.dailyTotal ? 'refresh' : 'check'" [size]="13" />
+                  {{ entry.dailyDone === entry.dailyTotal ? 'Reiniciar diarias' : 'Completar diarias' }}
+                </button>
+              }
+            </section>
+
+            <section>
+              <div class="flex items-center justify-between gap-2">
+                <p class="text-xs font-medium">
+                  Semanales
+                  <span class="ml-1 text-muted">{{ entry.weeklyDone }}/{{ entry.weeklyTotal }}</span>
+                </p>
+                <app-countdown [target]="entry.nextWeekly" label="reset" />
+              </div>
+              <app-progress-bar
+                class="mt-1.5 block"
+                [value]="entry.weeklyDone"
+                [max]="entry.weeklyTotal"
+                color="var(--color-warn)"
+              />
+              <div class="mt-1.5">
+                @for (mission of entry.weekly; track mission.mission.id) {
+                  <app-mission-row
+                    [mission]="mission.mission"
+                    [count]="mission.count"
+                    [done]="mission.done"
+                    [streak]="streakOf(mission.mission.id)"
+                    (toggle)="toggle(mission.mission)"
+                    (setCount)="setCount(mission.mission, $event)"
+                  />
+                } @empty {
+                  <p class="py-1 text-xs text-muted">
+                    Sin misiones semanales.
+                    <a class="link" [routerLink]="['/games', entry.game.id]">Añadir</a>
+                  </p>
+                }
+              </div>
+              @if (entry.weeklyTotal > 0) {
+                <button type="button" class="btn btn-ghost btn-sm mt-1" (click)="toggleAll(entry, 'weekly')">
+                  <app-icon [name]="entry.weeklyDone === entry.weeklyTotal ? 'refresh' : 'check'" [size]="13" />
+                  {{ entry.weeklyDone === entry.weeklyTotal ? 'Reiniciar semanales' : 'Completar semanales' }}
+                </button>
+              }
+            </section>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>

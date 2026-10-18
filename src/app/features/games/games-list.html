@@ -1,0 +1,154 @@
+<div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-5 sm:px-6 lg:py-8">
+  <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">Mis juegos</h1>
+      <p class="mt-1 text-sm text-muted">
+        {{ progress().length }} juegos registrados · {{ archivedCount() }}
+        {{ archivedCount() === 1 ? 'archivado' : 'archivados' }}
+      </p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="relative">
+        <app-icon name="search" [size]="15" class="pointer-events-none absolute top-2.5 left-3 text-muted" />
+        <input
+          class="input py-2 pl-9 sm:w-56"
+          type="search"
+          placeholder="Buscar juego…"
+          [value]="query()"
+          (input)="query.set($any($event.target).value)"
+        />
+      </div>
+      <button type="button" class="btn btn-sm" (click)="showArchived.set(!showArchived())">
+        <app-icon [name]="showArchived() ? 'eye' : 'eye-off'" [size]="14" />
+        {{ showArchived() ? 'Ocultar archivados' : 'Ver archivados' }}
+      </button>
+      <a routerLink="/games/new" class="btn btn-primary btn-sm">
+        <app-icon name="plus" [size]="14" />
+        Nuevo juego
+      </a>
+    </div>
+  </header>
+
+  @if (!hasAny()) {
+    <section class="card flex flex-col items-center gap-3 px-6 py-14 text-center">
+      <span class="grid h-14 w-14 place-items-center rounded-2xl bg-accent/12 text-accent">
+        <app-icon name="sparkles" [size]="26" />
+      </span>
+      <h2 class="text-lg font-semibold">Empieza registrando un gacha</h2>
+      <p class="max-w-md text-sm text-muted">
+        Guarda el horario de reset de cada juego (zona horaria, hora diaria y día semanal) y crea sus misiones.
+      </p>
+      <a routerLink="/games/new" class="btn btn-primary mt-1">
+        <app-icon name="plus" [size]="16" />
+        Añadir juego
+      </a>
+    </section>
+  } @else if (games().length === 0) {
+    <section class="card px-6 py-10 text-center">
+      <p class="text-sm text-muted">No hay juegos que coincidan con tu búsqueda.</p>
+    </section>
+  } @else {
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      @for (entry of games(); track entry.game.id; let index = $index) {
+        <article class="card card-interactive overflow-hidden" [class.opacity-70]="entry.game.archived">
+          <div class="relative h-28">
+            <app-game-cover [game]="entry.game" mode="banner" />
+            <div class="relative flex items-start justify-between gap-2 p-4">
+              <div class="flex min-w-0 items-center gap-3">
+                <app-game-cover [game]="entry.game" mode="avatar" [size]="48" />
+                <div class="min-w-0">
+                  <h2 class="truncate font-semibold leading-tight">{{ entry.game.name }}</h2>
+                  <p class="text-[11px] text-muted">
+                    {{ missionCount(entry.game.id) }} misiones
+                    @if (entry.game.archived) {
+                      · archivado
+                    }
+                  </p>
+                </div>
+              </div>
+              <div class="flex flex-col gap-0.5">
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-icon disabled:opacity-30"
+                  aria-label="Mover arriba"
+                  [disabled]="index === 0"
+                  (click)="move(entry.game, -1)"
+                >
+                  <app-icon name="chevron-up" [size]="14" />
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-icon disabled:opacity-30"
+                  aria-label="Mover abajo"
+                  [disabled]="index === games().length - 1"
+                  (click)="move(entry.game, 1)"
+                >
+                  <app-icon name="chevron-down" [size]="14" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-3 px-4 pb-4">
+            <div class="flex flex-wrap gap-1.5">
+              <span class="chip chip-daily">
+                <app-icon name="clock" [size]="12" />
+                {{ entry.dailyDone }}/{{ entry.dailyTotal }} diarias
+              </span>
+              <span class="chip chip-weekly">
+                <app-icon name="calendar" [size]="12" />
+                {{ entry.weeklyDone }}/{{ entry.weeklyTotal }} semanales
+              </span>
+            </div>
+
+            <dl class="grid grid-cols-2 gap-2 text-[11px] text-muted">
+              <div>
+                <dt class="text-muted/70">Reset diario · {{ zoneLabel(entry.game.timezone) }}</dt>
+                <dd class="font-medium text-fg">{{ entry.game.dailyResetTime }}</dd>
+              </div>
+              <div>
+                <dt class="text-muted/70">Reset semanal</dt>
+                <dd class="font-medium text-fg">
+                  {{ weekdayLabel(entry.game.weeklyResetDay) }} {{ entry.game.weeklyResetTime }}
+                </dd>
+              </div>
+            </dl>
+
+            <div class="flex items-center justify-between text-xs">
+              <app-countdown [target]="entry.nextDaily" label="diarias" />
+              <app-countdown [target]="entry.nextWeekly" label="semanal" />
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="flex items-center gap-1">
+              <a [routerLink]="['/games', entry.game.id]" class="btn btn-sm flex-1">
+                <app-icon name="list" [size]="13" />
+                Misiones
+              </a>
+              <a [routerLink]="['/games', entry.game.id, 'edit']" class="btn btn-ghost btn-icon" aria-label="Editar">
+                <app-icon name="pencil" [size]="14" />
+              </a>
+              <button
+                type="button"
+                class="btn btn-ghost btn-icon"
+                [attr.aria-label]="entry.game.archived ? 'Restaurar' : 'Archivar'"
+                (click)="toggleArchived(entry.game)"
+              >
+                <app-icon [name]="entry.game.archived ? 'refresh' : 'folder'" [size]="14" />
+              </button>
+              <button
+                type="button"
+                class="btn btn-ghost btn-icon text-danger/80 hover:text-danger"
+                aria-label="Eliminar"
+                (click)="remove(entry.game)"
+              >
+                <app-icon name="trash" [size]="14" />
+              </button>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>

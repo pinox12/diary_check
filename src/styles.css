@@ -1,0 +1,227 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   Paleta del proyecto.
+
+   Los colores se declaran como valores reales en @theme (no como referencias a
+   otras variables) para que los modificadores de opacidad de Tailwind
+   (`bg-accent/12`, `text-muted/70`…) funcionen: así Tailwind genera
+   color-mix() en vez de ignorarlos.
+
+   El tema claro simplemente reasigna las mismas variables `--color-*`, por lo
+   que toda la interfaz cambia en caliente sin recompilar.
+--------------------------------------------------------------------------- */
+@theme {
+  --color-bg: #0a0c11;
+  --color-surface: #12151d;
+  --color-surface2: #171b25;
+  --color-surface3: #1f2431;
+  --color-line: #272d3c;
+  --color-fg: #e8ebf5;
+  --color-muted: #8e97ad;
+  --color-accent: #7c5cff;
+  --color-ok: #34d399;
+  --color-warn: #fbbf24;
+  --color-danger: #f87171;
+}
+
+/* Sombras: variables propias (Tripwire: las sombras de @theme se incrustan como
+   valor literal con @apply y no seguirían el cambio de tema). */
+:root {
+  --s-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 10px 30px -18px rgb(0 0 0 / 0.75);
+  --s-pop: 0 12px 40px -12px rgb(0 0 0 / 0.65);
+}
+
+html.theme-light {
+  --color-bg: #f2f4f9;
+  --color-surface: #ffffff;
+  --color-surface2: #f7f8fc;
+  --color-surface3: #eceef6;
+  --color-line: #dde1ec;
+  --color-fg: #141824;
+  --color-muted: #5d6780;
+  --color-accent: #6a45ff;
+  --color-ok: #059669;
+  --color-warn: #b45309;
+  --color-danger: #dc2626;
+  --s-card: 0 1px 2px rgb(16 24 40 / 0.05), 0 12px 30px -20px rgb(16 24 40 / 0.25);
+  --s-pop: 0 16px 44px -16px rgb(16 24 40 / 0.35);
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg text-fg antialiased;
+    font-family:
+      'Inter',
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      sans-serif;
+    overscroll-behavior: none;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-surface3) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-surface3);
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 999px;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  select option {
+    background: var(--color-surface);
+    color: var(--color-fg);
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-surface;
+    box-shadow: var(--s-card);
+  }
+
+  .card-interactive {
+    @apply transition hover:border-accent/40;
+  }
+
+  .card-interactive:hover {
+    box-shadow: var(--s-pop);
+  }
+
+  /* Sombra de elementos flotantes (modales, avisos, menús). */
+  .shadow-soft {
+    box-shadow: var(--s-pop);
+  }
+
+  .btn {
+    @apply inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-line bg-surface2 px-3.5 py-2 text-sm font-medium text-fg transition select-none hover:bg-surface3 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-sm {
+    @apply gap-1.5 rounded-lg px-2.5 py-1.5 text-xs;
+  }
+
+  .btn-icon {
+    @apply rounded-lg p-2;
+  }
+
+  .btn-primary {
+    @apply border-transparent bg-accent text-white hover:brightness-110;
+  }
+
+  .btn-ghost {
+    @apply border-transparent bg-transparent hover:bg-surface2;
+  }
+
+  .btn-danger {
+    @apply border-transparent bg-danger/15 text-danger hover:bg-danger/25;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-line bg-surface2 px-3 py-2 text-sm text-fg transition outline-none placeholder:text-muted/60 focus:border-accent/70 focus:ring-2 focus:ring-accent/20;
+  }
+
+  .input-sm {
+    @apply rounded-lg px-2.5 py-1.5 text-xs;
+  }
+
+  .label {
+    @apply mb-1.5 block text-[11px] font-semibold tracking-wider text-muted uppercase;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-line bg-surface2 px-2.5 py-1 text-xs font-medium text-muted;
+  }
+
+  .chip-daily {
+    @apply border-accent/30 bg-accent/12 text-accent;
+  }
+
+  .chip-weekly {
+    @apply border-warn/35 bg-warn/12 text-warn;
+  }
+
+  .chip-ok {
+    @apply border-ok/35 bg-ok/12 text-ok;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition hover:bg-surface2 hover:text-fg;
+  }
+
+  .nav-link-active {
+    @apply bg-accent/12 text-fg;
+    /* Borde interior propio: el atajo shadow de Tailwind no admite color-mix(). */
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 35%, transparent);
+  }
+
+  .link {
+    @apply font-medium text-accent underline-offset-2 hover:underline;
+  }
+
+  .section-title {
+    @apply text-[11px] font-semibold tracking-wider text-muted uppercase;
+  }
+
+  .divider {
+    @apply h-px bg-line;
+  }
+}
+
+@layer utilities {
+  .fade-in {
+    animation: fade-in 0.22s ease-out both;
+  }
+
+  .pop-in {
+    animation: pop-in 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
